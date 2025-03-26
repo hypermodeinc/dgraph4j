@@ -17,6 +17,13 @@ runtimes:
     - python@3.10.8
 # This is the section where you manage your linters. (https://docs.trunk.io/check/configuration)
 lint:
+  ignore:
+    - linters: [ALL]
+      paths:
+        - gradlew
+        - gradle/*/*
+        - samples/*/gradlew
+        - samples/*/gradle/*/*
   enabled:
     - trivy@0.59.1
     - actionlint@1.7.7
