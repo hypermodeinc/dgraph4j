@@ -10,10 +10,20 @@ import io.dgraph.DgraphProto.TxnContext;
 import io.dgraph.DgraphProto.Version;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Metadata;
+import io.grpc.netty.NettyChannelBuilder;
+import io.grpc.netty.GrpcSslContexts;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.grpc.stub.MetadataUtils;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.concurrent.Executor;
+import java.util.HashMap;
+import java.util.Map;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import javax.net.ssl.SSLException;
 
 /**
  * Implementation of a DgraphClient using grpc.
@@ -30,6 +40,155 @@ public class DgraphClient {
   private static final String gRPC_AUTHORIZATION_HEADER_NAME = "authorization";
 
   private final DgraphAsyncClient asyncClient;
+
+  /**
+   * Creates a new DgraphClient instance from a connection string.
+   *
+   * <p>This method attempts to authenticate via Dgraph's ACL mechanism if
+   * username and password are provided.
+   * <p>The connection string has the format: "dgraph://[username:password@]host:port[?params]"
+   * <p>Supported query parameters:
+   * <ul>
+   *   <li>sslmode - SSL connection mode. Supported values:
+   *     <ul>
+   *       <li>"disable" - No encryption, uses plaintext</li>
+   *       <li>"require" - Uses TLS encryption without certificate verification</li>
+   *       <li>"verify-ca" - Uses TLS encryption with certificate verification</li>
+   *     </ul>
+   *   </li>
+   *   <li>apikey - API key for authorization from Dgraph Cloud</li>
+   *   <li>bearertoken - Bearer token for authorization</li>
+   * </ul>
+   *
+   * @param connectionString The connection string to connect to Dgraph
+   * @return A new DgraphClient instance
+   * @throws IllegalArgumentException If the connection string is invalid
+   * @throws MalformedURLException If the connection string cannot be parsed as a URL
+   * @throws SSLException If there's an error configuring the SSL context for sslmode=require
+   */
+  public static DgraphClient openConnection(String connectionString)
+      throws IllegalArgumentException, MalformedURLException, SSLException {
+    if (connectionString == null || connectionString.isEmpty()) {
+      throw new IllegalArgumentException("Connection string cannot be null or empty");
+    }
+
+    // Connection string format: dgraph://[username:password@]host:port[?params]
+    if (!connectionString.startsWith("dgraph://")) {
+      throw new IllegalArgumentException("Invalid connection string: scheme must be 'dgraph'");
+    }
+    // Parse the URL (Use java.net.URL initially to validate the basic structure)
+    URL url;
+    try {
+      // Replace dgraph:// with http:// for proper URL parsing
+      url = new URL(connectionString.replace("dgraph://", "http://"));
+    } catch (MalformedURLException e) {
+      throw new IllegalArgumentException("Failed to parse connection string: " + e.getMessage(), e);
+    }
+
+    // Extract host and port
+    String host = url.getHost();
+    int port = url.getPort();
+
+    if (host == null || host.isEmpty()) {
+      throw new IllegalArgumentException("Invalid connection string: hostname required");
+    }
+    if (port == -1) {
+      throw new IllegalArgumentException("Invalid connection string: port required");
+    }
+
+    // Extract username and password
+    String username = null;
+    String password = null;
+    if (url.getUserInfo() != null) {
+      String[] userInfo = url.getUserInfo().split(":", 2);
+      username = userInfo[0];
+      if (userInfo.length > 1) {
+        password = userInfo[1];
+      }
+    }
+
+    if (username != null && (password == null || password.isEmpty())) {
+      throw new IllegalArgumentException(
+          "Invalid connection string: password required when username is provided");
+    }
+
+    // Parse parameters into a Map (crazy that there's no built-in support for this in net.URL)
+    Map<String, String> params = new HashMap<>();
+    if (url.getQuery() != null) {
+      String[] pairs = url.getQuery().split("&");
+      for (String pair : pairs) {
+        int idx = pair.indexOf("=");
+        if (idx > 0) {
+          try {
+            String key = URLDecoder.decode(pair.substring(0, idx), StandardCharsets.UTF_8.toString());
+            String value = URLDecoder.decode(pair.substring(idx + 1), StandardCharsets.UTF_8.toString());
+            params.put(key, value);
+          } catch (UnsupportedEncodingException e) {
+            throw new AssertionError(e);
+          }
+        }
+      }
+    }
+
+    ManagedChannelBuilder<?> channelBuilder = ManagedChannelBuilder
+        .forAddress(host, port);
+
+    if (params.containsKey("sslmode")) {
+      String sslmode = params.get("sslmode");
+      if ("disable".equals(sslmode)) {
+        channelBuilder.usePlaintext();
+      } else if ("require".equals(sslmode)) {
+        // create a new channel builder for tls minus the CA checks
+        try {
+          SslContext sslContext = GrpcSslContexts.forClient()
+            .trustManager(InsecureTrustManagerFactory.INSTANCE)
+            .build();
+          channelBuilder = NettyChannelBuilder.forAddress(host, port)
+            .sslContext(sslContext);
+        } catch (SSLException e) {
+          throw e;
+        }
+      } else if ("verify-ca".equals(sslmode)) {
+        channelBuilder.useTransportSecurity();
+      } else {
+        throw new IllegalArgumentException("Invalid sslmode: " + sslmode);
+      }
+    } else {
+      // Default to usePlaintext if not specified
+      channelBuilder.usePlaintext();
+    }
+
+    if (params.containsKey("apikey") && params.containsKey("bearertoken")) {
+      throw new IllegalArgumentException(
+          "apikey and bearertoken cannot both be provided");
+    }
+
+    String authHeader = null;
+    if (params.containsKey("apikey")) {
+      authHeader = params.get("apikey");
+    } else if (params.containsKey("bearertoken")) {
+      authHeader = "Bearer " + params.get("bearertoken");
+    }
+
+    DgraphGrpc.DgraphStub stub;
+    if (authHeader != null) {
+      Metadata metadata = new Metadata();
+      metadata.put(
+          Metadata.Key.of(gRPC_AUTHORIZATION_HEADER_NAME, Metadata.ASCII_STRING_MARSHALLER),
+          authHeader);
+      stub = DgraphGrpc.newStub(channelBuilder.build())
+          .withInterceptors(MetadataUtils.newAttachHeadersInterceptor(metadata));
+    } else {
+      stub = DgraphGrpc.newStub(channelBuilder.build());
+    }
+
+    DgraphClient client = new DgraphClient(stub);
+
+    if (username != null) {
+      client.login(username, password);
+    }
+    return client;
+  }
 
   /**
    * Creates a gRPC stub that can be used to construct clients to connect with Slash GraphQL.
