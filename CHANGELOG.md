@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.1.0/),
 
 **Added**
 
-- add support for Dgraph connection strings (#XXX)
+- add support for Dgraph connection strings (#268)
 
 ## [24.1.1] - 2024-12-13
 
