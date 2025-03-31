@@ -154,7 +154,6 @@ public class DgraphClient {
         throw new IllegalArgumentException("Invalid sslmode: " + sslmode);
       }
     } else {
-      // Default to usePlaintext if not specified
       channelBuilder.usePlaintext();
     }
 
