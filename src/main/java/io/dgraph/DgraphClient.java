@@ -47,6 +47,14 @@ public class DgraphClient {
 
   /**
    * Options for configuring a Dgraph client connection.
+   *
+   * <p>Example use:
+   * <pre>{@code
+   * DgraphClient client = DgraphClient.ClientOptions.forAddress("localhost", 9080)
+   *     .withACLCredentials("username", "password")
+   *     .withTLS()
+   *     .build();
+   * }</pre>
    */
   public static class ClientOptions {
     private final ManagedChannelBuilder<?> channelBuilder;
@@ -177,7 +185,6 @@ public class DgraphClient {
     public DgraphClient build() {
       DgraphGrpc.DgraphStub stub = createStub();
 
-      // Apply authorization if present
       if (authorizationToken != null) {
         Metadata metadata = new Metadata();
         metadata.put(
@@ -188,13 +195,41 @@ public class DgraphClient {
 
       DgraphClient client = new DgraphClient(stub);
 
-      // Apply ACL login if credentials are provided
       if (username != null && password != null) {
         client.login(username, password);
       }
 
       return client;
     }
+  }
+
+  /**
+   * Parses query parameters from a URL.
+   *
+   * @param url The URL containing query parameters
+   * @return A map of parameter names to values
+   * @throws IllegalStateException If UTF-8 encoding is not supported by the JVM (should never happen)
+   */
+  private static Map<String, String> parseQueryParameters(URL url) {
+    Map<String, String> params = new HashMap<>();
+    if (url.getQuery() == null) {
+      return params;
+    }
+
+    String[] pairs = url.getQuery().split("&");
+    for (String pair : pairs) {
+      int idx = pair.indexOf("=");
+      if (idx > 0) {
+        try {
+          String key = URLDecoder.decode(pair.substring(0, idx), StandardCharsets.UTF_8.toString());
+          String value = URLDecoder.decode(pair.substring(idx + 1), StandardCharsets.UTF_8.toString());
+          params.put(key, value);
+        } catch (UnsupportedEncodingException e) {
+          throw new IllegalStateException("UTF-8 encoding not supported by the JVM", e);
+        }
+      }
+    }
+    return params;
   }
 
   /**
@@ -221,9 +256,10 @@ public class DgraphClient {
    * @throws IllegalArgumentException If the connection string is invalid
    * @throws MalformedURLException If the connection string cannot be parsed as a URL
    * @throws SSLException If there's an error configuring the SSL context for sslmode=require
+   * @throws IllegalStateException If UTF-8 encoding is not supported by the JVM (should never happen)
    */
   public static DgraphClient open(String connectionString)
-      throws IllegalArgumentException, MalformedURLException, SSLException {
+      throws IllegalArgumentException, MalformedURLException, SSLException, IllegalStateException {
     if (connectionString == null || connectionString.isEmpty()) {
       throw new IllegalArgumentException("Connection string cannot be null or empty");
     }
@@ -264,35 +300,18 @@ public class DgraphClient {
         throw new IllegalArgumentException(
             "Invalid connection string: password required when username is provided");
       }
-      if (username != null && password != null) {
-        options.withACLCredentials(username, password);
-      }
+      options.withACLCredentials(username, password);
     }
 
-    // Parse URL parameters
-    Map<String, String> params = new HashMap<>();
-    if (url.getQuery() != null) {
-      String[] pairs = url.getQuery().split("&");
-      for (String pair : pairs) {
-        int idx = pair.indexOf("=");
-        if (idx > 0) {
-          try {
-            String key = URLDecoder.decode(pair.substring(0, idx), StandardCharsets.UTF_8.toString());
-            String value = URLDecoder.decode(pair.substring(idx + 1), StandardCharsets.UTF_8.toString());
-            params.put(key, value);
-          } catch (UnsupportedEncodingException e) {
-            throw new AssertionError(e);
-          }
-        }
-      }
-    }
+    Map<String, String> params = parseQueryParameters(url);
 
     if (params.containsKey("sslmode")) {
       String sslmode = params.get("sslmode");
       if (SSLMODE_DISABLE.equals(sslmode)) {
         options.withPlaintext();
       } else if (SSLMODE_REQUIRE.equals(sslmode)) {
-        options.withTLSSkipVerify();
+        // This assignment is necessary to reassign the overridden createStub method
+        options = options.withTLSSkipVerify();
       } else if (SSLMODE_VERIFY_CA.equals(sslmode)) {
         options.withTLS();
       } else {
@@ -311,7 +330,6 @@ public class DgraphClient {
       options.withBearerToken(params.get("bearertoken"));
     }
 
-    // Build and return the client
     return options.build();
   }
 
