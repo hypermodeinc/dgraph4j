@@ -20,14 +20,14 @@ public class DgraphConnTest {
   private static final String EXPECTED_UID_JSON = "{\"me\":[{\"uid\":\"0x1\"}]}";
 
   /**
-   * Tests the Dgraph connection using the openConnection method with ACL credentials.
+   * Tests the Dgraph connection using the open method with ACL credentials.
    * This test connects to a local Dgraph server with authentication.
    */
   @Test
-  public void testOpenConnectionWithACL() {
+  public void testOpenWithACL() {
     try {
       String conn = "dgraph://groot:password@localhost:9180";
-      DgraphClient client = DgraphClient.openConnection(conn);
+      DgraphClient client = DgraphClient.open(conn);
       assertNotNull(client);
       
       String query = "{ me(func: uid(1)) { uid }}";
@@ -52,7 +52,7 @@ public class DgraphConnTest {
     try {
       // Try to connect without providing credentials
       String conn = "dgraph://localhost:9180";
-      DgraphClient client = DgraphClient.openConnection(conn);
+      DgraphClient client = DgraphClient.open(conn);
       
       // Try a query to trigger the authentication error
       String query = "{ me(func: uid(1)) { uid }}";
@@ -90,7 +90,7 @@ public class DgraphConnTest {
     try {
       // Missing port in connection string should throw IllegalArgumentException
       String conn = "dgraph://localhost";
-      DgraphClient.openConnection(conn);
+      DgraphClient.open(conn);
       fail("Should have thrown IllegalArgumentException for missing port");
     } catch (IllegalArgumentException e) {
       // Expected exception
@@ -108,7 +108,7 @@ public class DgraphConnTest {
     try {
       // Invalid schema should throw IllegalArgumentException
       String conn = "http://localhost:9180";
-      DgraphClient.openConnection(conn);
+      DgraphClient.open(conn);
       fail("Should have thrown IllegalArgumentException for invalid schema");
     } catch (IllegalArgumentException e) {
       // Expected exception
@@ -126,7 +126,7 @@ public class DgraphConnTest {
     try {
       // Username without password should throw IllegalArgumentException
       String conn = "dgraph://groot@localhost:9180";
-      DgraphClient.openConnection(conn);
+      DgraphClient.open(conn);
       fail("Should have thrown IllegalArgumentException for missing password");
     } catch (IllegalArgumentException e) {
       // Expected exception
@@ -144,7 +144,7 @@ public class DgraphConnTest {
     try {
       // Invalid sslmode should throw IllegalArgumentException
       String conn = "dgraph://localhost:9180?sslmode=invalid";
-      DgraphClient.openConnection(conn);
+      DgraphClient.open(conn);
       fail("Should have thrown IllegalArgumentException for invalid sslmode");
     } catch (IllegalArgumentException e) {
       // Expected exception
@@ -162,7 +162,7 @@ public class DgraphConnTest {
     try {
       // Both apikey and bearertoken should throw IllegalArgumentException
       String conn = "dgraph://localhost:9180?apikey=somekey&bearertoken=sometoken";
-      DgraphClient.openConnection(conn);
+      DgraphClient.open(conn);
       fail("Should have thrown IllegalArgumentException for conflicting auth methods");
     } catch (IllegalArgumentException e) {
       // Expected exception
@@ -181,7 +181,7 @@ public class DgraphConnTest {
       // This test is a bit tricky since we can't directly inspect the headers.
       // We're mostly testing that the connection string parses correctly.
       String conn = "dgraph://localhost:9180?bearertoken=test_token";
-      DgraphClient client = DgraphClient.openConnection(conn);
+      DgraphClient client = DgraphClient.open(conn);
       assertNotNull(client);
       client.shutdown();
     } catch (Exception e) {
@@ -198,7 +198,7 @@ public class DgraphConnTest {
       // This test is a bit tricky since we can't directly inspect the headers.
       // We're mostly testing that the connection string parses correctly.
       String conn = "dgraph://localhost:9180?apikey=test_api_key";
-      DgraphClient client = DgraphClient.openConnection(conn);
+      DgraphClient client = DgraphClient.open(conn);
       assertNotNull(client);
       client.shutdown();
     } catch (Exception e) {

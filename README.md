@@ -198,11 +198,11 @@ Some example connection strings:
 | dgraph://foo-bar.grpc.us-west-2.aws.cloud.dgraph.io:443?sslmode=verify-ca&apikey=\<your-api-connection-key\> | Connect to a Dgraph Cloud cluster                                                   |
 | dgraph://foo-bar.grpc.hypermode.com?sslmode=verify-ca&bearertoken=\<some access token\>                      | Connect to a Dgraph cluster protected by a secure gateway                           |
 
-Using the `DgraphClient.openConnection` function with a connection string:
+Using the `DgraphClient.open` function with a connection string:
 
 ```java
 // open a connection to an ACL-enabled, non-TLS cluster and login as groot
-DgraphClient client = DgraphClient.openConnection("dgraph://groot:password@localhost:8090");
+DgraphClient client = DgraphClient.open("dgraph://groot:password@localhost:8090");
 
 // some time later...
 client.shutdown();
@@ -242,8 +242,7 @@ DgraphStub stub = DgraphClient.clientStubFromCloudEndpoint("https://your-instanc
 DgraphClient dgraphClient = new DgraphClient(stub);
 ```
 
-Note the `DgraphClient.openConnection` method can be used if you have a Dgraph connection string
-(see above).
+Note the `DgraphClient.open` method can be used if you have a Dgraph connection string (see above).
 
 ### Creating a Secure Client using TLS
 

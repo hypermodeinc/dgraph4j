@@ -66,7 +66,7 @@ public class DgraphClient {
    * @throws MalformedURLException If the connection string cannot be parsed as a URL
    * @throws SSLException If there's an error configuring the SSL context for sslmode=require
    */
-  public static DgraphClient openConnection(String connectionString)
+  public static DgraphClient open(String connectionString)
       throws IllegalArgumentException, MalformedURLException, SSLException {
     if (connectionString == null || connectionString.isEmpty()) {
       throw new IllegalArgumentException("Connection string cannot be null or empty");
