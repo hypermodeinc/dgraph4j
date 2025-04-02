@@ -33,12 +33,40 @@ public class DgraphConnTest {
       String query = "{ me(func: uid(1)) { uid }}";
       Response response = client.newTransaction().query(query);
       assertNotNull(response);
-      
       assertEquals(response.getJson().toStringUtf8(), EXPECTED_UID_JSON);
       
       client.shutdown();
     } catch (Exception e) {
       fail("Failed to connect with ACL: " + e.getMessage());
+    }
+  }
+
+  /**
+   * Tests the Dgraph connection using the ClientOptions class.
+   * This test connects to a local Dgraph server with ACL credentials and plaintext.
+   */
+  @Test
+  public void testClientOptions() {
+    try {
+      DgraphClient client = DgraphClient.ClientOptions.forAddress("localhost", 9180)
+          .withACLCredentials("groot", "password")
+          .withPlaintext()
+          .build();
+      assertNotNull(client);
+
+      String query = "{ me(func: uid(1)) { uid }}";
+      Response response = client.newTransaction().query(query);
+      assertNotNull(response);
+      assertEquals(response.getJson().toStringUtf8(), EXPECTED_UID_JSON);
+
+      client.shutdown();
+    } catch (Exception e) {
+      Throwable cause = e;
+      while (cause != null) {
+        System.out.println("Cause: " + cause.getMessage());
+        cause = cause.getCause();
+      }
+      fail("Failed to connect with TLS: " + e.getMessage());
     }
   }
 
