@@ -97,12 +97,12 @@ public class DgraphClient {
     }
 
     /**
-     * Sets an API key for authorization.
+     * Sets a Dgraph API key for authorization.
      *
      * @param apiKey The API key to use for authorization.
      * @return This ClientOptions instance for chaining.
      */
-    public ClientOptions withApiKey(String apiKey) {
+    public ClientOptions withDgraphApiKey(String apiKey) {
       this.authorizationToken = apiKey;
       return this;
     }
@@ -325,7 +325,7 @@ public class DgraphClient {
     }
 
     if (params.containsKey("apikey")) {
-      options.withApiKey(params.get("apikey"));
+      options.withDgraphApiKey(params.get("apikey"));
     } else if (params.containsKey("bearertoken")) {
       options.withBearerToken(params.get("bearertoken"));
     }
