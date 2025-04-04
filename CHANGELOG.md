@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.1.0/),
 
+## [XX.X.X] - 2025-XX-XX
+
+**Added**
+
+- add support for Dgraph connection strings (#268)
+
 ## [24.1.1] - 2024-12-13
 
 **Added**

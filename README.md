@@ -169,6 +169,47 @@ client and use it to mutate or query dgraph. For the async client, more details 
 
 ### Creating a Client
 
+#### Using a Connection String
+
+This library supports connecting to a Dgraph cluster using connection strings. Dgraph connections
+strings take the form `dgraph://{username:password@}host:port?args`.
+
+`username` and `password` are optional. If username is provided, a password must also be present. If
+supplied, these credentials are used to log into a Dgraph cluster through the ACL mechanism.
+
+Valid connection string args:
+
+| Arg         | Value                           | Description                                                                                                                                                   |
+| ----------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| apikey      | \<key\>                         | a Dgraph Cloud API Key                                                                                                                                        |
+| bearertoken | \<token\>                       | an access token                                                                                                                                               |
+| sslmode     | disable \| require \| verify-ca | TLS option, the default is `disable`. If `verify-ca` is set, the TLS certificate configured in the Dgraph cluster must be from a valid certificate authority. |
+
+Note that using `sslmode=require` disables certificate validation and significantly reduces the
+security of TLS. This mode should only be used in non-production (e.g., testing or development)
+environments.
+
+Some example connection strings:
+
+| Value                                                                                                        | Explanation                                                                         |
+| ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| dgraph://localhost:9080                                                                                      | Connect to localhost, no ACL, no TLS                                                |
+| dgraph://sally:supersecret@dg.example.com:443?sslmode=verify-ca                                              | Connect to remote server, use ACL and require TLS and a valid certificate from a CA |
+| dgraph://foo-bar.grpc.us-west-2.aws.cloud.dgraph.io:443?sslmode=verify-ca&apikey=\<your-api-connection-key\> | Connect to a Dgraph Cloud cluster                                                   |
+| dgraph://foo-bar.grpc.hypermode.com?sslmode=verify-ca&bearertoken=\<some access token\>                      | Connect to a Dgraph cluster protected by a secure gateway                           |
+
+Using the `DgraphClient.open` function with a connection string:
+
+```java
+// open a connection to an ACL-enabled, non-TLS cluster and login as groot
+DgraphClient client = DgraphClient.open("dgraph://groot:password@localhost:8090");
+
+// some time later...
+client.shutdown();
+```
+
+#### Using Managed Channels
+
 The following code snippet shows how to create a synchronous client using three connections.
 
 ```java
@@ -200,6 +241,8 @@ them as follows :
 DgraphStub stub = DgraphClient.clientStubFromCloudEndpoint("https://your-instance.cloud.dgraph.io/graphql", "your-api-key");
 DgraphClient dgraphClient = new DgraphClient(stub);
 ```
+
+Note the `DgraphClient.open` method can be used if you have a Dgraph connection string (see above).
 
 ### Creating a Secure Client using TLS
 
