@@ -30,7 +30,7 @@ apply plugin: 'idea'
 apply plugin: 'signing'
 
 group = 'io.dgraph'
-version = '24.1.1'
+version = '24.2.0'
 
 base {
     archivesName = 'dgraph4j'

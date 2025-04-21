@@ -4,11 +4,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.1.0/),
 
-## [XX.X.X] - 2025-XX-XX
+## [24.2.0] - 2025-04-21
 
 **Added**
 
-- add support for Dgraph connection strings (#268)
+- feat: add support for Dgraph connection strings (#268)
+
+**Fixed**
+
+- chore(deps): Update java minor and patch (#271) (#269) (#267) (#261) (#260)
+- chore(deps): Update dependency com.google.protobuf:protobuf-gradle-plugin to v0.9.5 (#270)
+- chore(deps): Update dependency org.testng:testng to v7 (#262)
+- build(deps): bump com.google.code.gson:gson from 2.11.0 to 2.12.0 in
+  /samples/concurrent-modification in the minor-and-patch group (#256)
+- build(deps): bump the minor-and-patch group across 4 directories with 1 update (#257) (#255)
+  (#254) (#253)
 
 ## [24.1.1] - 2024-12-13
 
