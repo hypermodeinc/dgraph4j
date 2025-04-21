@@ -17,7 +17,7 @@ repositories {
 
 dependencies {
      // Use Dgraph Java client
-    implementation 'io.dgraph:dgraph4j:24.1.1'
+    implementation 'io.dgraph:dgraph4j:24.2.0'
 
     // Use JUnit test framework
     testImplementation 'junit:junit:4.13.2'
@@ -28,4 +28,3 @@ dependencies {
 
 // Define the main class for the application
 mainClassName = 'App'
-
