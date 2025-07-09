@@ -21,7 +21,7 @@ plugins {
     id 'jacoco'
     id 'base'
     id 'maven-publish'
-    id 'com.gradleup.shadow' version '8.3.6'
+    id 'com.gradleup.shadow' version '8.3.8'
 }
 
 apply plugin: 'java'
